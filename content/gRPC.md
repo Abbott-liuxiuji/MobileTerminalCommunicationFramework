@@ -1,5 +1,31 @@
 # gRPC
-1、适配（iPhone X）
+###1、概念
+
+***
+
+gRPC 一开始由 google 开发，是一款语言中立、平台中立、开源的远程过程调用(RPC)系统。
+
+在 gRPC 里*客户端*应用可以像调用本地对象一样直接调用另一台不同的机器上*服务端*应用的方法，使得您能够更容易地创建分布式应用和服务。与许多 RPC 系统类似，gRPC 也是基于以下理念：定义一个*服务*，指定其能够被远程调用的方法（包含参数和返回类型）。在服务端实现这个接口，并运行一个 gRPC 服务器来处理客户端调用。在客户端拥有一个*存根*能够像服务端一样的方法。
+
+### 2、使用技术 protocol buffers
+
+***
+
+gRPC默认使用protocol buffers，这是Google开源的一套成熟的结构数据序列化机制。用proto files 创建gRPC服务，用protocol buffers消息类型来定义方法参数和返回类型。
+
+通常建议在gRPC里使用proto3。因为这样你可以使用gRPC支持全部范围的语言，并且能避免proto2客户端与proto3服务端交互时出现的兼容性问题。
+
+### 3、定义服务
+
+***
+
+使用protocol buffers接口定义语言来定义服务方法，用protocol buffer 来定义参数和返回类型。客户端和服务端均使用服务定义生成的接口代码（以官网例子为demo）。
+
+在官网例子里使用protocol buffers IDL定义。
+
+
+
+
 
 规格：
 iPhone X的屏幕宽度同iPhone6、6s、7、8的4.7英寸屏幕宽度相同（375pt），屏幕垂直高度增加了145pt，一位置增加了20%的可视空间。
@@ -97,13 +123,13 @@ safeAreaInsets:{88, 0, 34, 0}
 
 ***
 
-1、搜索框 ：UISearchController
+###1、搜索框 ：UISearchController
 
-》ios11  高：56
+系统ios11  高：56
 
-《 ios11 高：44
+系统 ios11 高：44
 
-2、头部适配
+###2、头部适配
 
 iPhoneX     状态栏： 30
 
@@ -115,9 +141,9 @@ iPhoneX       总体：88
 
 ​                     导航栏：44
 
-​                     总体：64
+​                      总体：64
 
-3、UItableview 系统11之后：
+###3、UItableview 系统11之后：
 
 ​      XXX.estimatedRowHeight = 0
 
@@ -127,11 +153,13 @@ iPhoneX       总体：88
 
 
 
-4、启动页适配
+###4、启动页适配
 
+增加iPhone X 启动页增加
 
+image size ： 1125 x 2436 pixels
 
-5、屏幕底部圆角距离
+###5、屏幕底部圆角距离
 
 ​     iphone X 因屏幕位圆角：底部增加 34
 
