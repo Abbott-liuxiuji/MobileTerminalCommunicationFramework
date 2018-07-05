@@ -88,164 +88,246 @@ rpc ListFeatures（Rectangle）returns （stream Feature）{}
 rpc
 
  
+项目实战：
+第一步：根build.gradle 增加
+dependencies {
 
+  classpath "com.google.protobuf:protobuf-gradle-plugin:0.8.5"
+    
+ }
+ 
+第二步：项目build.gradle 增加
+apply plugin: 'com.google.protobuf'
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-规格：
-iPhone X的屏幕宽度同iPhone6、6s、7、8的4.7英寸屏幕宽度相同（375pt），屏幕垂直高度增加了145pt，一位置增加了20%的可视空间。
-竖屏规格：1125px x 2346px（375pt x 812pt @3x）
-横屏规格：2436px x 1125px （812px x 375pt @3x）
-
-一、启动页适配
-填充iPhonex启动页2x、3x
-
-二、状态栏、搜索框
-高度增加了24像素（来电或者热点不会导致状态栏高度变化）；
-搜索框宽度在iphonex展示位置
-
-三、底部栏
-Tabbar 高度增加了34像素
-Toolbar高度不变，只是向上偏移了34像素
-
-四、SafeArea安全区域
-安全区域指在屏幕顶部和底部区域之间能正常显示内容的区域。顶部区域包括导航栏、状态栏或者传感器区域。底部区域包含Tabbar、工具栏或者home键指示器区域。
-
-五、屏幕适配
-如果你的项目存在导航栏界面push到全屏界面，或者手势滑动做很炫的过场动画，那么你可能会用到自定义导航栏NavigationBar，每个ViewController维护自身的Navigationbar实例。
-
-UINavigationBar *navigationBar = [[UINavigationBar alloc] initWithFrame:CGRectZero];
-navigationBar.backgroundColor = [UIColor blueColor];
-navigationBar.barTintColor = [UIColor blueColor];
-navigationBar.titleTextAttributes = @{NSForegroundColorAttributeName:[UIColor whiteColor]};
-navigationBar.items = @[[UINavigationItem new]];
-navigationBar.topItem.title = self.title;
-[self.view addSubview:navigationBar];
-
-navigationBar.translatesAutoresizingMaskIntoConstraints = NO;
-
-if (@available(iOS 11.0, *)) {
-    NSLayoutConstraint *left = [navigationBar.leftAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.leftAnchor];
-    NSLayoutConstraint *right = [navigationBar.rightAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.rightAnchor];
-    NSLayoutConstraint *top = [navigationBar.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor];
-    NSLayoutConstraint *height = [navigationBar.heightAnchor constraintEqualToConstant:44];
-    [NSLayoutConstraint activateConstraints:@[left, right, top, height]];
-}else{
-    NSLayoutConstraint *left = [navigationBar.leftAnchor constraintEqualToAnchor:self.view.leftAnchor];
-    NSLayoutConstraint *right = [navigationBar.rightAnchor constraintEqualToAnchor:self.view.rightAnchor];
-    NSLayoutConstraint *top = [navigationBar.topAnchor constraintEqualToAnchor:self.topLayoutGuide.bottomAnchor];
-    NSLayoutConstraint *height = [navigationBar.heightAnchor constraintEqualToConstant:44];
-    [NSLayoutConstraint activateConstraints:@[left, right, top, height]];
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.0.0'
+    }
+    plugins {
+        javalite {
+            artifact = "com.google.protobuf:protoc-gen-javalite:3.0.0"
+        }
+        grpc {
+            artifact = 'io.grpc:protoc-gen-grpc-java:1.12.0' // CURRENT_GRPC_VERSION
+        }
+    }
+    generateProtoTasks {
+        all().each { task ->
+            task.plugins {
+                javalite {}
+                grpc {
+                    // Options added to --grpc_out
+                    option 'lite'
+                }
+            }
+        }
+    }
 }
 
 
-导航栏背景未扩展到状态栏，正常应该显示蓝色。
+dependencies {
+    compile 'io.grpc:grpc-okhttp:1.12.0'
+    compile 'io.grpc:grpc-protobuf-lite:1.12.0'
+    compile 'io.grpc:grpc-stub:1.12.0'
+    compile 'org.conscrypt:conscrypt-android:1.1.2'
+    compile 'javax.annotation:javax.annotation-api:1.2'
+}
 
-解决方案:
+第三步：Activity中增加
+/**
+     * 首页数据请求 认证
+     */
+    private class GrpcTask extends AsyncTask<Void, Void, String> {
+        private String mHost;
+        private String mName;
+        private int mPort;
+        private ManagedChannel mChannel;
 
-设置Navigationbar的UIBarPositioningDelegate返回UIBarPositionTopAttached即可。
+        public GrpcTask(String host, int port, String name) {
+            this.mHost = host;
+            this.mName = name;
+            this.mPort = port;
+        }
 
-typedef NS_ENUM(NSInteger, UIBarPosition) {
-    UIBarPositionAny = 0,
-    UIBarPositionBottom = 1, // The bar is at the bottom of its local context, and directional decoration draws accordingly (e.g., shadow above the bar).
-    UIBarPositionTop = 2, // The bar is at the top of its local context, and directional decoration draws accordingly (e.g., shadow below the bar)
-    UIBarPositionTopAttached = 3, // The bar is at the top of the screen (as well as its local context), and its background extends upward—currently only enough for the status bar.
-} NS_ENUM_AVAILABLE_IOS(7_0);
-navigationBar.delegate = self;
+        @Override
+        protected void onPreExecute() {
 
-- (UIBarPosition)positionForBar:(id <UIBarPositioning>)bar
-  {
-    return UIBarPositionTopAttached;
-  }
+        }
 
-  备注：navigationbar扩展到statusbar的颜色为barTintColor的值。如果失效，检查下是否将translucent设置为NO，并且Navigationbar必须为添加到ViewController的一级subView。
-  自定义导航栏后发现SafeArea没有变化,这样设置contentview的时候会将navigationbar遮挡。
+        @Override
+        protected String doInBackground(Void... nothing) {
+            try {
+                Security.insertProviderAt(Conscrypt.newProvider(), 1);
+                /**
+                 * okhttp 通讯加密
+                 */
+                OkHttpChannelBuilder okHttpChannelBuilder = OkHttpChannelBuilder.forAddress(mHost, mPort);
+                if(isDebug) {
+                    okHttpChannelBuilder.hostnameVerifier(new HostnameVerifier() {
+                        @Override
+                        public boolean verify(String hostname, SSLSession session) {
+                            return true;
+                        }
+                    });
+                    final TrustManager[] trustAllCerts = new TrustManager[] {
+                            new X509TrustManager() {
+                                @Override
+                                public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
+                                }
 
-safeAreaInsets:{44, 0, 34, 0}）
-解决方案：设置additionalSafeAreaInsets
+                                @Override
+                                public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
+                                }
 
-/* Custom container UIViewController subclasses can use this property to add to the overlay
- that UIViewController calculates for the safeAreaInsets for contained view controllers.
- */
-@property(nonatomic) UIEdgeInsets additionalSafeAreaInsets API_AVAILABLE(ios(11.0), tvos(11.0));
-设置该值后也要相应调整下导航栏的布局，之前是在SafeArea之内，现在要改为之外。
-
-self.additionalSafeAreaInsets = UIEdgeInsetsMake(44, 0, 0, 0);
-NSLayoutConstraint *left = [navigationBar.leftAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.leftAnchor];
-NSLayoutConstraint *right = [navigationBar.rightAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.rightAnchor];
-NSLayoutConstraint *bottom = [navigationBar.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor];
-NSLayoutConstraint *height = [navigationBar.heightAnchor constraintEqualToConstant:44];
-[NSLayoutConstraint activateConstraints:@[left, right, bottom, height]];
-可以看到安全区域也更新了:
-
-safeAreaInsets:{88, 0, 34, 0}
-
-
-
-***
-
-## iPhone X 适配
-
-***
-
-###1、搜索框 ：UISearchController
-
-系统ios11  高：56
-
-系统 ios11 高：44
-
-###2、头部适配
-
-iPhoneX     状态栏： 30
-
-​                    导航栏：58   
-
-iPhoneX       总体：88
-
-非iPhone X  状态栏：20
-
-​                     导航栏：44
-
-​                      总体：64
-
-###3、UItableview 系统11之后：
-
-​      XXX.estimatedRowHeight = 0
-
-​      XXX.estimatedSectionHeaderHeight = 0
-
-​      XXX.estimatedSectionFooterHeight = 0
+                                @Override
+                                public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                                    return new java.security.cert.X509Certificate[]{};
+                                }
+                            }
+                    };
 
 
+                    final SSLContext sslContext = SSLContext.getInstance("SSL");
+                    sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+                    final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+                    okHttpChannelBuilder.sslSocketFactory(sslSocketFactory);
 
-###4、启动页适配
+                }else{
+                    final SSLContext sslContext = SSLContext.getInstance("SSL");
+                    sslContext.init(null, null, new java.security.SecureRandom());
+                    SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+                    okHttpChannelBuilder.sslSocketFactory(sslSocketFactory);
+                }
 
-增加iPhone X 启动页增加
+                mChannel=okHttpChannelBuilder.build();
+                /**
+                 * 新闻资讯
+                 */
+                NewsServGrpc.NewsServBlockingStub news_stub = NewsServGrpc.newBlockingStub(mChannel).withCallCredentials(new     PtokenCallCredentials(getActivity()));
+                GetNewsRequest  mGetNewsRequest = GetNewsRequest.newBuilder().setWhichColumn(newsType)
+                                                                             .setPagingCond(PagingCondition.newBuilder().setCurrentPage(pageIndex)
+                                                                                                                        .setSizePerPage(pageSize).build())
+                                                                             .build();
+                //数据返回
+                GetNewsResponse newsList = news_stub.getNews(mGetNewsRequest);
 
-image size ： 1125 x 2436 pixels
+                Map<String,NewsList>  mMap = newsList.getNewsMapMap();
 
-###5、屏幕底部圆角距离
+                NewsList mNewsList = mMap.get("cpdt");
+                PagingResult mPagingResult = mNewsList.getPagingResult();
+                //总数量
+                int  sizeTotal = mPagingResult.getSizeTotal();
+                //每页数据量大小
+                int  sizePerPage = mPagingResult.getSizePerPage();
+                //当前页码
+                int  currentPage = mPagingResult.getCurrentPage();
+                //新闻数量
+                int newsCount = mNewsList.getNewsListCount();
 
-​     iphone X 因屏幕位圆角：底部增加 34
+
+                /**
+                 * 数据库 清理
+                 */
+                SQLiteDatabase dba_top = SQLiteDatabase.openDatabase(
+                        "/data/data/cn.com.topsec.www.topseccloud/topsec_cmp",
+                        null, SQLiteDatabase.NO_LOCALIZED_COLLATORS);
+                Cursor cursor_top = dba_top.query(sqlite_table_name, null,null
+                        , null, null, null, null);
+
+                if(cursor_top.moveToNext()){//有数据清空表数据
+                    dba_top.execSQL("DELETE FROM "+sqlite_table_name);
+                }else{//无数据增加数据
+
+                }
+                //遍历所有 数据
+                ContentValues cv = new ContentValues();
+                if(newsCount>0){
+
+                    for(int i =0 ;i<newsCount;i++){
+                        String id = mNewsList.getNewsList(i).getId();
+                        String title = mNewsList.getNewsList(i).getTitle();
+                        String author = mNewsList.getNewsList(i).getAuthor();
+                        String pubDate = mNewsList.getNewsList(i).getPubDate();
+                        String htmlUrl = mNewsList.getNewsList(i).getHtmlUrl();
+                        String imgUrl = mNewsList.getNewsList(i).getImgUrl();
+                        String column = mNewsList.getNewsList(i).getColumn();
+
+
+
+                        cv.put("id",id);
+                        cv.put("title",title);
+                        cv.put("author",author);
+                        cv.put("sortdate",pubDate);
+                        cv.put("path",htmlUrl);
+                        cv.put("toplevel",1);
+                        cv.put("typepath",imgUrl);
+                        cv.put("uuid",1);
+                        cv.put("typeimg",column);
+                        cv.put("version",1);
+                        cv.put("shoucang",0);
+                        cv.put("readtype",0);
+
+                        dba_top.insert(sqlite_table_name,null,cv);
+                    }
+
+                }
+
+                cursor_top.close();
+                dba_top.close();
+
+                //登录失败
+                Message message = Message.obtain(mHandler);
+                message.what = 1;
+                mHandler.sendMessageDelayed(message, 1000); //通过延迟发送消息，每隔一秒发送一条消息
+
+
+
+                return "yes";
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                StringWriter sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw);
+                e.printStackTrace(pw);
+                pw.flush();
+                /** 异常截获 **/
+                errorMessage = e.getMessage();
+                //登录失败
+                Message message = Message.obtain(mHandler);
+                message.what = 2;
+                mHandler.sendMessageDelayed(message, 1000); //通过延迟发送消息，每隔一秒发送一条消息
+                return "Login... : " + System.lineSeparator() + sw;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+
+            try {
+                mChannel.shutdown().awaitTermination(1, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+
+            Log.d(TAG, result);
+
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
